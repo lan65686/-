@@ -1,4 +1,5 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+import java.util.Base64
 
 plugins {
   alias(libs.plugins.android.application)
@@ -7,6 +8,19 @@ plugins {
   alias(libs.plugins.roborazzi)
   alias(libs.plugins.secrets)
   alias(libs.plugins.google.services)
+}
+
+// Reconstruct debug.keystore from debug.keystore.base64 if missing (e.g. on GitHub Actions CI)
+val debugKeystore = file("${rootDir}/debug.keystore")
+val base64File = file("${rootDir}/debug.keystore.base64")
+if (!debugKeystore.exists() && base64File.exists()) {
+  try {
+    val base64Text = base64File.readText().replace("\\s".toRegex(), "")
+    val decodedBytes = Base64.getDecoder().decode(base64Text)
+    debugKeystore.writeBytes(decodedBytes)
+  } catch (e: Exception) {
+    logger.warn("Failed to decode debug.keystore from base64: ${e.message}")
+  }
 }
 
 android {

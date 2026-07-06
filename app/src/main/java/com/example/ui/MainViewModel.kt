@@ -17,6 +17,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -101,7 +103,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var qrJob: Job? = null
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             repository.seedDefaultUsersIfEmpty()
             syncManager.updatePendingCount()
             // Auto-login from saved session
@@ -109,8 +111,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (savedUsername != null) {
                 val user = database.userDao().getUserByUsername(savedUsername)
                 if (user != null) {
-                    _currentUser.value = user
-                    _showEmployeeQr.value = false
+                    withContext(Dispatchers.Main) {
+                        _currentUser.value = user
+                        _showEmployeeQr.value = false
+                    }
                     // Auto-sync current user on startup to restore any deleted/missing fields in Firestore
                     syncUserToFirebase(user)
                 }
@@ -471,7 +475,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // Helper: Sync registered/logged in user to Firebase Firestore
     fun syncUserToFirebase(user: User) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Check if Firebase is initialized first
                 val isFirebaseAvailable = try {

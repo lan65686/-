@@ -102,6 +102,27 @@ fun SupervisorScreen(
         }
     }
 
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.CAMERA
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasCameraPermission = isGranted
+    }
+
+    LaunchedEffect(supervisorCheckedIn) {
+        if (supervisorCheckedIn && !hasCameraPermission) {
+            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -485,25 +506,60 @@ fun SupervisorScreen(
                                     .border(2.dp, BiankyRoyalBlue, RoundedCornerShape(16.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                // Real Camera preview compilation
-                                CameraPreviewContainer()
+                                if (hasCameraPermission) {
+                                    // Real Camera preview compilation
+                                    CameraPreviewContainer()
 
-                                // Scanning overlay frame box
-                                Box(
-                                    modifier = Modifier
-                                        .size(140.dp)
-                                        .border(2.dp, Color.White, RoundedCornerShape(8.dp))
-                                )
+                                    // Scanning overlay frame box
+                                    Box(
+                                        modifier = Modifier
+                                            .size(140.dp)
+                                            .border(2.dp, Color.White, RoundedCornerShape(8.dp))
+                                    )
 
-                                // Real camera indicator text
-                                Text(
-                                    text = "الكاميرا مدمجة ونشطة",
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontSize = 11.sp,
-                                    modifier = Modifier
-                                        .align(Alignment.BottomCenter)
-                                        .padding(12.dp)
-                                )
+                                    // Real camera indicator text
+                                    Text(
+                                        text = "الكاميرا مدمجة ونشطة",
+                                        color = Color.White.copy(alpha = 0.7f),
+                                        fontSize = 11.sp,
+                                        modifier = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .padding(12.dp)
+                                    )
+                                } else {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
+                                        modifier = Modifier.padding(16.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PhotoCamera,
+                                            contentDescription = "الكاميرا مغلقة",
+                                            tint = Color.White.copy(alpha = 0.6f),
+                                            modifier = Modifier.size(40.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "الكاميرا تتطلب إذن التشغيل للتصوير والمسح",
+                                            color = Color.White,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Button(
+                                            onClick = {
+                                                cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = BiankyRoyalBlue),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                                            modifier = Modifier.height(36.dp)
+                                        ) {
+                                            Text("تفعيل الكاميرا", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
