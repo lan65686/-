@@ -5,12 +5,33 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.MainViewModel
 import com.example.ui.screens.AdminScreen
@@ -18,6 +39,7 @@ import com.example.ui.screens.EmployeeScreen
 import com.example.ui.screens.LoginScreen
 import com.example.ui.screens.SupervisorScreen
 import com.example.ui.theme.MyApplicationTheme
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,6 +48,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             MyApplicationTheme {
                 val mainViewModel: MainViewModel = viewModel()
+                
+                var showSplash by remember { mutableStateOf(true) }
                 
                 val currentUser by mainViewModel.currentUser.collectAsState()
                 val profileSyncStatus by mainViewModel.profileSyncStatus.collectAsState()
@@ -55,7 +79,10 @@ class MainActivity : ComponentActivity() {
                 val syncState by mainViewModel.syncState.collectAsState()
                 val pendingCount by mainViewModel.pendingCount.collectAsState()
 
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                if (showSplash) {
+                    SplashScreen(onTimeout = { showSplash = false })
+                } else {
+                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     val user = currentUser
                     if (user == null) {
                         LoginScreen(
@@ -157,6 +184,57 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+}
+}
+
+@Composable
+fun SplashScreen(onTimeout: () -> Unit) {
+    LaunchedEffect(Unit) {
+        delay(3000) // Exactly 3 seconds
+        onTimeout()
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Background Image
+        Image(
+            painter = painterResource(id = R.drawable.bianky_logo_1783220167899),
+            contentDescription = "خلفية بيانكي",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        // Semi-transparent overlay to ensure text is perfectly readable
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.4f))
+        )
+
+        // Loading Indicator and Text
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 80.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            CircularProgressIndicator(
+                color = Color.White,
+                strokeWidth = 3.dp,
+                modifier = Modifier.size(40.dp)
+            )
+            
+            Text(
+                text = "جاري التحميل...",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

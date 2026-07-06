@@ -764,6 +764,15 @@ fun AdminScreen(
                         Button(
                             onClick = {
                                 if (newUsername.isNotEmpty() && newName.isNotEmpty() && newPassword.isNotEmpty()) {
+                                    val words = newName.trim().split("\\s+".toRegex()).filter { it.isNotBlank() }
+                                    if (words.size < 4) {
+                                        android.widget.Toast.makeText(context, "الرجاء إدخال الاسم رباعي (4 أسماء على الأقل)", android.widget.Toast.LENGTH_LONG).show()
+                                        return@Button
+                                    }
+                                    if (newPassword.length < 8) {
+                                        android.widget.Toast.makeText(context, "يجب أن تكون كلمة المرور 8 أحرف أو أكثر", android.widget.Toast.LENGTH_LONG).show()
+                                        return@Button
+                                    }
                                     val randomColor = listOf(0xFF3B82F6, 0xFF10B981, 0xFFF59E0B, 0xFFEF4444, 0xFF8B5CF6).random().toInt()
                                     onAddUser(
                                         User(

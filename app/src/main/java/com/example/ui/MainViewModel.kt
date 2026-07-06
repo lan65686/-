@@ -186,6 +186,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 return@launch
             }
             
+            val words = name.trim().split("\\s+".toRegex()).filter { it.isNotBlank() }
+            if (words.size < 4) {
+                _loginError.value = "الرجاء إدخال الاسم رباعي (4 أسماء على الأقل)"
+                return@launch
+            }
+            if (password.length < 8) {
+                _loginError.value = "يجب أن تكون كلمة المرور 8 أحرف أو أكثر"
+                return@launch
+            }
+            
             val existingUser = database.userDao().getUserByUsername(username)
             if (existingUser != null) {
                 _loginError.value = "اسم المستخدم هذا مسجل بالفعل، يرجى اختيار اسم آخر"

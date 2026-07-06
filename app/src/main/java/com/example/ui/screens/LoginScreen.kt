@@ -49,6 +49,7 @@ fun LoginScreen(
     modifier: Modifier = Modifier
 ) {
     var isRegisterMode by remember { mutableStateOf(false) }
+    var localError by remember { mutableStateOf<String?>(null) }
     
     var fullName by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
@@ -130,6 +131,7 @@ fun LoginScreen(
                         .background(if (isRegisterMode) BiankyDeepBlue else Color.Transparent)
                         .clickable { 
                             isRegisterMode = true 
+                            localError = null
                         }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
@@ -150,6 +152,7 @@ fun LoginScreen(
                         .background(if (!isRegisterMode) BiankyDeepBlue else Color.Transparent)
                         .clickable { 
                             isRegisterMode = false 
+                            localError = null
                         }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
@@ -169,7 +172,10 @@ fun LoginScreen(
             if (isRegisterMode) {
                 OutlinedTextField(
                     value = fullName,
-                    onValueChange = { fullName = it },
+                    onValueChange = { 
+                        fullName = it
+                        localError = null
+                    },
                     label = { Text("الاسم الكامل للموظف / Full Name") },
                     leadingIcon = { Icon(Icons.Default.Badge, contentDescription = "Name", tint = BiankyDeepBlue) },
                     singleLine = true,
@@ -195,7 +201,10 @@ fun LoginScreen(
             // Username Input
             OutlinedTextField(
                 value = username,
-                onValueChange = { username = it },
+                onValueChange = { 
+                    username = it
+                    localError = null
+                },
                 label = { Text("اسم المستخدم / Username") },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Username", tint = BiankyDeepBlue) },
                 singleLine = true,
@@ -221,7 +230,10 @@ fun LoginScreen(
             // Password Input
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { 
+                    password = it
+                    localError = null
+                },
                 label = { Text("كلمة المرور / Password") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Password", tint = BiankyDeepBlue) },
                 trailingIcon = {
@@ -444,10 +456,11 @@ fun LoginScreen(
                 }
             }
 
-            if (loginError != null) {
+            val displayError = localError ?: loginError
+            if (displayError != null) {
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = loginError,
+                    text = displayError,
                     color = MaterialTheme.colorScheme.error,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
@@ -462,6 +475,15 @@ fun LoginScreen(
             Button(
                 onClick = { 
                     if (isRegisterMode) {
+                        val words = fullName.trim().split("\\s+".toRegex()).filter { it.isNotBlank() }
+                        if (words.size < 4) {
+                            localError = "الرجاء إدخال الاسم رباعي (4 أسماء على الأقل)"
+                            return@Button
+                        }
+                        if (password.length < 8) {
+                            localError = "يجب أن تكون كلمة المرور 8 أحرف أو أكثر"
+                            return@Button
+                        }
                         onRegisterClick(username, password, fullName, selectedRole, selectedShift)
                     } else {
                         onLoginClick(username, password)
