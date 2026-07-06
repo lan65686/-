@@ -25,6 +25,11 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Auto remove debug signing config
+        run: |
+          find . -name "build.gradle.kts" -exec sed -i '/signingConfig =/d' {} +
+          find . -name "build.gradle" -exec sed -i '/signingConfig =/d' {} +
+
       - name: Build APK with Gradle
         run: gradle assembleDebug
 
