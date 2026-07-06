@@ -2,6 +2,6 @@
 <resources>
 
     <style name="Theme.MyApplication" parent="android:Theme.DeviceDefault.Light.NoActionBar">
-        <item name="android:windowBackground">@color/white</item>
+        <item name="android:windowBackground">@color/bianky_deep_blue</item>
     </style>
 </resources>

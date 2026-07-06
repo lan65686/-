@@ -145,6 +145,9 @@ class MainActivity : ComponentActivity() {
                                             Toast.makeText(this@MainActivity, "خطأ: الموظف غير موجود", Toast.LENGTH_SHORT).show()
                                         }
                                     },
+                                    onRealScan = { scannedText ->
+                                        mainViewModel.processScannedCode(scannedText)
+                                    },
                                     onConfirmScan = { scanType ->
                                         mainViewModel.confirmScanRecord(scanType)
                                         Toast.makeText(this@MainActivity, "تم تسجيل الحركة وحفظها بنجاح", Toast.LENGTH_SHORT).show()
@@ -192,7 +195,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun SplashScreen(onTimeout: () -> Unit) {
     LaunchedEffect(Unit) {
-        delay(3000) // Exactly 3 seconds
+        delay(800) // Super fast launch (800ms)
         onTimeout()
     }
 

@@ -43,6 +43,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.camera.core.ImageAnalysis
+import com.google.zxing.BinaryBitmap
+import com.google.zxing.MultiFormatReader
+import com.google.zxing.PlanarYUVLuminanceSource
+import com.google.zxing.common.HybridBinarizer
 import com.example.data.model.ScanRecord
 import com.example.data.model.User
 import com.example.data.sync.SyncStatus
@@ -71,6 +76,7 @@ fun SupervisorScreen(
     onForceSync: () -> Unit,
     onSimulateScan: (String) -> Unit, // Username
     onConfirmScan: (String) -> Unit, // CHECK_IN or CHECK_OUT
+    onRealScan: (String) -> Unit = {},
     onDismissPopup: () -> Unit,
     onAvatarUpdate: (String, String) -> Unit,
     modifier: Modifier = Modifier,
@@ -80,7 +86,6 @@ fun SupervisorScreen(
     val context = LocalContext.current
     var selectedGpsMode by remember { mutableStateOf("INSIDE") } // "INSIDE" or "OUTSIDE"
     var showProfileDialog by remember { mutableStateOf(false) }
-    var showEmployeeSelectDialog by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -507,8 +512,10 @@ fun SupervisorScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (hasCameraPermission) {
-                                    // Real Camera preview compilation
-                                    CameraPreviewContainer()
+                                    // Real Camera preview compilation with live QR scanning
+                                    CameraPreviewContainer(onQrCodeScanned = { scannedText ->
+                                        onRealScan(scannedText)
+                                    })
 
                                     // Scanning overlay frame box
                                     Box(
@@ -564,69 +571,7 @@ fun SupervisorScreen(
                         }
                     }
 
-                    // IMPORTANT: Scan Simulator Block for Browser Emulator compatibility
-                    item {
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.DeveloperMode,
-                                        contentDescription = "Sim",
-                                        tint = BiankyRoyalBlue,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "محاكي المسح للمتصفح (Interactive Scan Simulator)",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = BiankyDeepBlue
-                                    )
-                                }
-                                Text(
-                                    text = "بما أن كاميرا اللابتوب لا تتوفر مباشرة في المتصفح، استخدم الزر بالأسفل لمحاكاة مسح كود الـ QR الخاص بالموظفين:",
-                                    fontSize = 11.sp,
-                                    color = BiankyGray,
-                                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-                                )
 
-                                Button(
-                                    onClick = { showEmployeeSelectDialog = true },
-                                    colors = ButtonDefaults.buttonColors(containerColor = BiankyRoyalBlue),
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(48.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.QrCodeScanner,
-                                        contentDescription = "مسح الكود",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "مسح كود الموظف (محاكاة)",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                }
-                            }
-                        }
-                    }
 
                     // Error messages (e.g. out of geofence or expired)
                     if (scanMessage != null) {
@@ -855,7 +800,7 @@ fun SupervisorScreen(
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Text("تسجيل دخول", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text("تسجيل حضور", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
                                 Button(
                                     onClick = { onConfirmScan("CHECK_OUT") },
@@ -1081,135 +1026,16 @@ fun SupervisorScreen(
         )
     }
 
-    if (showEmployeeSelectDialog) {
-        AlertDialog(
-            onDismissRequest = { showEmployeeSelectDialog = false },
-            title = {
-                Text(
-                    text = "اختر موظفاً لمحاكاة مسح كود الـ QR الخاص به",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = BiankyDeepBlue,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
-            },
-            text = {
-                val employees = allUsers.filter { it.role == "EMPLOYEE" }
-                if (employees.isEmpty()) {
-                    Text(
-                        text = "لا يوجد موظفو أمن مسجلين في النظام حالياً.\nيرجى إضافة حساب موظف أولاً من لوحة تحكم المدير لتتمكن من مسح كود الـ QR الخاص به.",
-                        fontSize = 12.sp,
-                        color = BiankyGray,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp)
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 280.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(employees) { employee ->
-                            Card(
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                                shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        showEmployeeSelectDialog = false
-                                        onSimulateScan(employee.username)
-                                    }
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        // Avatar
-                                        Box(
-                                            modifier = Modifier
-                                                .size(36.dp)
-                                                .clip(CircleShape)
-                                                .background(Color(employee.avatarColor)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            if (employee.avatarUri != null && File(employee.avatarUri).exists()) {
-                                                AsyncImage(
-                                                    model = File(employee.avatarUri),
-                                                    contentDescription = "شخصي",
-                                                    contentScale = ContentScale.Crop,
-                                                    modifier = Modifier.fillMaxSize()
-                                                )
-                                            } else {
-                                                Text(
-                                                    text = employee.name.take(1),
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color.White
-                                                )
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column {
-                                            Text(
-                                                text = "${employee.name} (👮‍♂️ ${employee.shift})",
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = BiankyTextDark
-                                            )
-                                            Text(
-                                                text = "اسم الحساب: @${employee.username}",
-                                                fontSize = 10.sp,
-                                                color = BiankyGray
-                                            )
-                                        }
-                                    }
 
-                                    Icon(
-                                        imageVector = Icons.Default.QrCodeScanner,
-                                        contentDescription = "مسح الكود",
-                                        tint = BiankyRoyalBlue,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { showEmployeeSelectDialog = false },
-                    border = BorderStroke(1.dp, BiankyGray),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BiankyGray),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("إلغاء", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            },
-            shape = RoundedCornerShape(16.dp),
-            containerColor = Color.White
-        )
-    }
 }
 
-// Camera preview viewport integration using CameraX helper
+// Camera preview viewport integration using CameraX helper with live QR scanning using ZXing
 @Composable
-fun CameraPreviewContainer() {
+fun CameraPreviewContainer(onQrCodeScanned: (String) -> Unit) {
     val lifecycleOwner = LocalLifecycleOwner.current
+    var lastScannedText by remember { mutableStateOf("") }
+    var lastScannedTime by remember { mutableStateOf(0L) }
+
     AndroidView(
         factory = { context ->
             PreviewView(context).apply {
@@ -1224,16 +1050,58 @@ fun CameraPreviewContainer() {
             val cameraProviderFuture = ProcessCameraProvider.getInstance(previewView.context)
             cameraProviderFuture.addListener({
                 val cameraProvider = cameraProviderFuture.get()
+                
                 val preview = Preview.Builder().build().also {
                     it.setSurfaceProvider(previewView.surfaceProvider)
                 }
+                
+                val imageAnalysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                
+                imageAnalysis.setAnalyzer(
+                    androidx.core.content.ContextCompat.getMainExecutor(previewView.context)
+                ) { image ->
+                    val buffer = image.planes[0].buffer
+                    val data = ByteArray(buffer.remaining())
+                    buffer.get(data)
+                    
+                    val source = PlanarYUVLuminanceSource(
+                        data,
+                        image.width,
+                        image.height,
+                        0,
+                        0,
+                        image.width,
+                        image.height,
+                        false
+                    )
+                    val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
+                    try {
+                        val result = MultiFormatReader().decode(binaryBitmap)
+                        val text = result.text
+                        val now = System.currentTimeMillis()
+                        // 2 seconds de-bounce for the same scanned QR
+                        if (text != lastScannedText || now - lastScannedTime > 2000) {
+                            lastScannedText = text
+                            lastScannedTime = now
+                            onQrCodeScanned(text)
+                        }
+                    } catch (e: Exception) {
+                        // Ignore if QR not detected in frame
+                    } finally {
+                        image.close()
+                    }
+                }
+
                 val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
                 try {
                     cameraProvider.unbindAll()
                     cameraProvider.bindToLifecycle(
                         lifecycleOwner,
                         cameraSelector,
-                        preview
+                        preview,
+                        imageAnalysis
                     )
                 } catch (e: Exception) {
                     e.printStackTrace()
