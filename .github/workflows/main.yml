@@ -28,25 +28,13 @@ jobs:
           channel: 'stable'
 
       - name: Install dependencies
-        run: |
-          if [ -d "app" ]; then
-            cd app && flutter pub get
-          else
-            flutter pub get
-          fi
+        run: flutter pub get
 
       - name: Build APK
-        run: |
-          if [ -d "app" ]; then
-            cd app && flutter build apk --release
-          else
-            flutter build apk --release
-          fi
+        run: flutter build apk --release
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            app/build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
