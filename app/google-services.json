@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "924728829040",
+    "project_id": "bianky-9e961",
+    "storage_bucket": "bianky-9e961.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:924728829040:android:2d5e9e8fbfd6e85b4240b5",
+        "android_client_info": {
+          "package_name": "com.aistudio.bianky.swvpxz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDtYoWqyiNVfTLYqI03pvkkYulBOFrZuIk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

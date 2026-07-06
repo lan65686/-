@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // قواعد الأمان الخاصة بالصور الشخصية للموظفين
+    match /profile_pictures/{username}.jpg {
+      // يسمح بقرأة الصورة الشخصية لأي مستخدم مسجل بالتطبيق
+      allow read: if request.auth != null;
+      
+      // يسمح للموظف فقط برفع أو تحديث أو حذف صورته الشخصية بنفسه
+      // بحيث يطابق الـ UID الخاص به اسم المستخدم للصورة المرفوعة
+      allow write: if request.auth != null && request.auth.uid == username;
+    }
+  }
+}

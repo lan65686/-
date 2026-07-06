@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Bianky",
+  "description": "بيانكي - نظام ذكي لإدارة الحضور والانصراف لأفراد الأمن باستخدام رمز الاستجابة السريعة المتغير",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
