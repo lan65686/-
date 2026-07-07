@@ -57,7 +57,8 @@ fun AdminScreen(
     isOnline: Boolean = true,
     syncState: SyncStatus = SyncStatus.IDLE,
     pendingCount: Int = 0,
-    onToggleOnline: () -> Unit = {}
+    onToggleOnline: () -> Unit = {},
+    onForceSync: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -104,7 +105,13 @@ fun AdminScreen(
                     )
                 },
                 actions = {
-                    // Empty actions - logout button moved below profile card
+                    IconButton(onClick = onForceSync) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "مزامنة البيانات",
+                            tint = Color.White
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = BiankyDeepBlue

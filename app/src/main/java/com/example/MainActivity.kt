@@ -180,7 +180,11 @@ class MainActivity : ComponentActivity() {
                                     isOnline = isOnline,
                                     syncState = syncState,
                                     pendingCount = pendingCount,
-                                    onToggleOnline = { mainViewModel.toggleOnlineState() }
+                                    onToggleOnline = { mainViewModel.toggleOnlineState() },
+                                    onForceSync = {
+                                        mainViewModel.triggerSync()
+                                        Toast.makeText(this@MainActivity, "تم تحديث ومزامنة البيانات مع السحابة", Toast.LENGTH_SHORT).show()
+                                    }
                                 )
                             }
                         }

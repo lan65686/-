@@ -119,6 +119,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     syncUserToFirebase(user)
                 }
             }
+            // Pull all users from Firestore on startup
+            syncUsersFromFirebase()
         }
     }
 
@@ -245,6 +247,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Trigger sync
     fun triggerSync() {
         syncManager.triggerBackgroundSync()
+        syncUsersFromFirebase()
     }
 
     // Start Dynamic QR Generation
@@ -288,6 +291,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun registerUser(user: User) {
         viewModelScope.launch {
             repository.insertUser(user)
+            syncUserToFirebase(user)
         }
     }
 
@@ -376,8 +380,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // Delete User (Admin Dashboard)
     fun deleteUser(username: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             repository.deleteUser(username)
+            try {
+                val isFirebaseAvailable = try {
+                    FirebaseApp.getInstance()
+                    true
+                } catch (e: Exception) {
+                    false
+                }
+                if (isFirebaseAvailable) {
+                    val firestore = FirebaseFirestore.getInstance()
+                    firestore.collection("users").document(username).delete()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -500,9 +518,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val firestore = FirebaseFirestore.getInstance()
                 val firestoreUser = mapOf(
                     "username" to user.username,
+                    "password" to user.password,
                     "name" to user.name,
                     "role" to user.role,
                     "shift" to user.shift,
+                    "deviceBound" to (user.deviceBound ?: ""),
                     "avatarColor" to user.avatarColor,
                     "avatarUri" to (user.avatarUri ?: ""),
                     "updatedAt" to System.currentTimeMillis()
@@ -510,6 +530,55 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                 firestore.collection("users").document(user.username)
                     .set(firestoreUser)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    // Sync all users from Firestore to local Room Database
+    fun syncUsersFromFirebase() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val isFirebaseAvailable = try {
+                    FirebaseApp.getInstance()
+                    true
+                } catch (e: Exception) {
+                    false
+                }
+                if (!isFirebaseAvailable) return@launch
+
+                val firestore = FirebaseFirestore.getInstance()
+                firestore.collection("users").get()
+                    .addOnSuccessListener { querySnapshot ->
+                        viewModelScope.launch(Dispatchers.IO) {
+                            for (doc in querySnapshot.documents) {
+                                val username = doc.getString("username") ?: continue
+                                val password = doc.getString("password") ?: ""
+                                val name = doc.getString("name") ?: ""
+                                val role = doc.getString("role") ?: ""
+                                val shift = doc.getString("shift") ?: ""
+                                val deviceBound = doc.getString("deviceBound")
+                                val avatarColor = doc.getLong("avatarColor")?.toInt() ?: 0xFF3B82F6.toInt()
+                                val avatarUri = doc.getString("avatarUri")
+
+                                val fetchedUser = User(
+                                    username = username,
+                                    password = password,
+                                    name = name,
+                                    role = role,
+                                    shift = shift,
+                                    deviceBound = if (deviceBound.isNullOrEmpty()) null else deviceBound,
+                                    avatarColor = avatarColor,
+                                    avatarUri = if (avatarUri.isNullOrEmpty()) null else avatarUri
+                                )
+                                repository.insertUser(fetchedUser)
+                            }
+                        }
+                    }
+                    .addOnFailureListener {
+                        it.printStackTrace()
+                    }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
