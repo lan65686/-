@@ -48,8 +48,11 @@ fun QRCodeImage(
 
 private fun generateQRCode(text: String, size: Int): Bitmap? {
     return try {
+        val hints = mapOf(
+            com.google.zxing.EncodeHintType.CHARACTER_SET to "UTF-8"
+        )
         val bitMatrix: BitMatrix = MultiFormatWriter().encode(
-            text, BarcodeFormat.QR_CODE, size, size
+            text, BarcodeFormat.QR_CODE, size, size, hints
         )
         val width = bitMatrix.width
         val height = bitMatrix.height

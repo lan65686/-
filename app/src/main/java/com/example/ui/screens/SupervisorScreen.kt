@@ -1077,8 +1077,11 @@ fun CameraPreviewContainer(onQrCodeScanned: (String) -> Unit) {
                         false
                     )
                     val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
+                    val hints = mapOf(
+                        com.google.zxing.DecodeHintType.CHARACTER_SET to "UTF-8"
+                    )
                     try {
-                        val result = MultiFormatReader().decode(binaryBitmap)
+                        val result = MultiFormatReader().decode(binaryBitmap, hints)
                         val text = result.text
                         val now = System.currentTimeMillis()
                         // 2 seconds de-bounce for the same scanned QR
